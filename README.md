@@ -4,24 +4,6 @@ A FastAPI service that extracts and verifies identity fields from Aadhaar cards 
 
 ---
 
-## Project Structure
-
-```
-documentverification/
-├── .env
-├── main.py
-├── config.py
-├── requirements.txt
-├── extractors/
-│   ├── __init__.py
-│   ├── aadhar_extractor.py      # Gemini Vision — Aadhaar cards
-│   └── document_extractor.py   # Gemini Vision — all other documents
-└── verifier/
-    ├── __init__.py
-    └── document_verifier.py
-```
-
----
 
 ## Prerequisites
 
