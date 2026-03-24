@@ -28,6 +28,8 @@ def normalize_gender(gender: Optional[str]) -> Optional[str]:
     if not gender:
         return None
     g = gender.strip().lower()
+
+    # Normalize the genders
     if g in ("male", "m"):
         return "Male"
     if g in ("female", "f"):
@@ -41,6 +43,8 @@ def normalize_mobile(mobile: Optional[str]) -> Optional[str]:
     """Strip country code and validate 10-digit Indian mobile number."""
     if not mobile:
         return None
+    
+    # Normalize the mobile number
     digits = re.sub(r"\D", "", str(mobile))
     if digits.startswith("91") and len(digits) == 12:
         digits = digits[2:]
@@ -49,7 +53,7 @@ def normalize_mobile(mobile: Optional[str]) -> Optional[str]:
     logger.warning("Invalid mobile number discarded: '%s'", mobile)
     return None
 
-#  Abstract base extractor
+
 class BaseExtractor(ABC):
     """
     Abstract base for Gemini Vision extractors.
@@ -63,11 +67,12 @@ class BaseExtractor(ABC):
 
     def __init__(self, api_key: str) -> None:
         logger.info("Initializing %s with Gemini Vision.", self.__class__.__name__)
+
+        # Initialize the LLM 
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(self.MODEL_NAME)
         logger.info("Gemini model loaded: %s", self.MODEL_NAME)
 
-    #  Shared helpers
 
     def _load_image(self, image_bytes: bytes) -> Image.Image:
         """Convert raw bytes to a PIL Image."""
@@ -82,6 +87,8 @@ class BaseExtractor(ABC):
     async def _call_gemini(self, prompt: str, image: Image.Image) -> str:
         """Send prompt + image to Gemini and return raw response text."""
         logger.info("Sending image to Gemini Vision API.")
+
+        # Use async LLM calls
         response = await self.model.generate_content_async(
             [prompt, image],
             generation_config={"temperature": 0.1},
@@ -94,6 +101,8 @@ class BaseExtractor(ABC):
     def _parse_response(self, text: str) -> dict:
         """Parse Gemini response, stripping markdown fences if present."""
         text = text.strip()
+
+        # Parse gemini response
         if text.startswith("```"):
             text = re.sub(r"^```(?:json)?\n?", "", text)
             text = re.sub(r"\n?```$", "", text)

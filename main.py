@@ -2,8 +2,7 @@ import asyncio
 import logging
 import sys
 
-# config MUST be imported first — applies SSL fixes before any google imports
-import config
+
 from config import settings
 
 from contextlib import asynccontextmanager
@@ -12,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from extractors.aadhar_extractor import AadhaarExtractor, AadhaarData
+from extractors.aadhaar_extractor import AadhaarExtractor, AadhaarData
 from extractors.document_extractor import DocumentExtractor, DocumentData
 from verifier.document_verifier import DocumentVerifier, VerificationReport
 
@@ -80,7 +79,7 @@ def get_verifier() -> DocumentVerifier:
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/jpg", "image/webp"}
 MAX_FILE_SIZE_MB = 10
 
-
+# Image validation for given parameters
 async def validate_image(file: UploadFile) -> bytes:
     """Read and validate uploaded image file."""
     if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -105,8 +104,7 @@ async def validate_image(file: UploadFile) -> bytes:
     return image_bytes
 
 
-# Routes
-
+# Route for extract information from an aadhaar card
 @app.post(
     "/extract/aadhaar",
     tags=["Extraction"],
@@ -122,8 +120,11 @@ async def extract_aadhaar(
     Returns extracted: name, DOB, gender, mobile number, Aadhaar number.
     """
     logger.info(f"POST /extract/aadhaar — file: {file.filename}")
+
+    # Validate the image
     image_bytes = await validate_image(file)
 
+    # Extract the information from aadhaar card
     aadhaar_data: AadhaarData = await extractor.extract(image_bytes)
 
     if aadhaar_data.errors and not aadhaar_data.name:
@@ -144,7 +145,7 @@ async def extract_aadhaar(
         "data": aadhaar_data.to_dict(),
     }
 
-
+# Route to extract information from document
 @app.post(
     "/extract/document",
     tags=["Extraction"],
@@ -160,8 +161,11 @@ async def extract_document(
     Returns extracted: document type, name, DOB, gender, mobile number, ID number.
     """
     logger.info(f"POST /extract/document — file: {file.filename}")
+
+    # Validate the image
     image_bytes = await validate_image(file)
 
+    # Extract information from the document
     doc_data: DocumentData = await extractor.extract(image_bytes)
 
     if doc_data.errors and not doc_data.name:
@@ -183,7 +187,7 @@ async def extract_document(
         "data": doc_data.to_dict(),
     }
 
-
+# Route to verify if the information from aadhaar is matching from the information in document
 @app.post(
     "/verify",
     tags=["Verification"],
@@ -241,7 +245,7 @@ async def verify_document(
             },
         )
 
-    # Verify
+    # Verify the information
     logger.info("Running verification...")
     report: VerificationReport = verifier.verify(aadhaar_data, doc_data)
 
@@ -259,7 +263,6 @@ async def verify_document(
     }
 
 
-# Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     logger.exception(f"Unhandled exception on {request.url}: {exc}")

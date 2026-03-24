@@ -4,7 +4,7 @@ import re
 from typing import Optional
 from difflib import SequenceMatcher
 
-from extractors.aadhar_extractor import AadhaarData
+from extractors.aadhaar_extractor import AadhaarData
 from extractors.document_extractor import DocumentData
 from models import FieldResult, VerificationReport
 
@@ -41,8 +41,6 @@ class DocumentVerifier:
             f"DocumentVerifier initialized. Validity threshold: {self.validity_threshold}"
         )
 
-    # --- Normalization helpers ---
-
     def _normalize_text(self, text: Optional[str]) -> Optional[str]:
         """Lowercase, strip extra spaces, remove punctuation for comparison."""
         if not text:
@@ -56,6 +54,8 @@ class DocumentVerifier:
         """
         if not date_str:
             return None
+
+        # Use regex to get date
         m = re.match(r"(\d{2})[/\-](\d{2})[/\-](\d{4})", date_str.strip())
         if m:
             return f"{m.group(1)}/{m.group(2)}/{m.group(3)}"
@@ -69,6 +69,8 @@ class DocumentVerifier:
         """Strip non-digits and country code, return clean 10-digit number."""
         if not mobile:
             return None
+        
+        # Get date and normalize it
         digits = re.sub(r"\D", "", mobile)
         if digits.startswith("91") and len(digits) == 12:
             digits = digits[2:]
@@ -80,12 +82,12 @@ class DocumentVerifier:
             return 0.0
         return round(SequenceMatcher(None, a, b).ratio(), 3)
 
-    # --- Field comparators ---
 
     def _compare_name(
         self, aadhaar_name: Optional[str], doc_name: Optional[str]
     ) -> FieldResult:
         """Fuzzy name comparison to handle OCR variations and initials."""
+        # Do a fuzzy match
         a = self._normalize_text(aadhaar_name)
         b = self._normalize_text(doc_name)
 
@@ -94,7 +96,8 @@ class DocumentVerifier:
                 "name", aadhaar_name, doc_name, False, 0.0,
                 note="Name missing in one or both documents.",
             )
-
+        
+        # Calculate string similarity
         similarity = self._string_similarity(a, b)
         match = similarity >= self.NAME_SIMILARITY_THRESHOLD
 
@@ -176,7 +179,6 @@ class DocumentVerifier:
             match, 1.0 if match else 0.0, note,
         )
 
-    # --- Main verification ---
 
     def verify(
         self, aadhaar: AadhaarData, document: DocumentData
@@ -194,6 +196,7 @@ class DocumentVerifier:
         """
         logger.info("Starting document verification against Aadhaar.")
 
+        # Compare all the parameters 
         comparisons: list[FieldResult] = [
             self._compare_name(aadhaar.name, document.name),
             self._compare_dob(aadhaar.dob, document.dob),
@@ -219,7 +222,7 @@ class DocumentVerifier:
 
             if one_missing:
                 skipped.append(result.field_name)
-                total_weight += weight  # Penalize — field couldn't be verified
+                total_weight += weight  
                 logger.debug(f"Skipping '{result.field_name}': missing in one document.")
                 continue
 
@@ -231,17 +234,18 @@ class DocumentVerifier:
             else:
                 mismatched.append(result.field_name)
 
+        # Calculate the weighted score for all the similarity scores.
         overall_score = (
             round(weighted_score / total_weight, 3) if total_weight > 0 else 0.0
         )
         is_valid = overall_score >= self.validity_threshold
 
-        # Hard rule: severe name mismatch always invalidates the document
         name_result = next((r for r in comparisons if r.field_name == "name"), None)
         if name_result and not name_result.match and name_result.similarity < 0.5:
             is_valid = False
             logger.warning("Hard mismatch on name — marking document as invalid.")
 
+        # Give matching summary
         summary = (
             f"Document is {'VALID' if is_valid else 'INVALID'}. "
             f"Overall score: {overall_score:.0%}. "

@@ -24,6 +24,8 @@ class DocumentExtractor(BaseExtractor):
         """
         critical = ["name", "id_number"]
         optional = ["dob", "gender", "mobile_number"]
+
+        # Calculate the score
         score = (
             sum(bool(data.get(f)) for f in critical) / len(critical) * 0.6
             + sum(bool(data.get(f)) for f in optional) / len(optional) * 0.4
@@ -34,21 +36,25 @@ class DocumentExtractor(BaseExtractor):
         logger.info("Starting document extraction.")
 
         try:
+            # Load the image
             image = self._load_image(image_bytes)
         except ValueError as exc:
             return DocumentData(errors=[str(exc)])
 
         try:
+            # Use gemini to extract the text
             raw_text = await self._call_gemini(self.PROMPT, image)
         except Exception as exc:
             logger.error("Gemini API error: %s: %s", type(exc).__name__, exc)
             return DocumentData(errors=[f"Gemini API error: {exc}"])
 
         try:
+            # Parse gemini response
             parsed = self._parse_response(raw_text)
         except ValueError as exc:
             return DocumentData(raw_text=raw_text, errors=[str(exc)])
 
+        # Calculate the confidence score
         confidence = self._confidence(parsed)
 
         doc_data = DocumentData(

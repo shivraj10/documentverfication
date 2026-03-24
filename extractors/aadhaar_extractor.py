@@ -19,20 +19,24 @@ class AadhaarExtractor(BaseExtractor):
 
     async def extract(self, image_bytes: bytes) -> AadhaarData:
         try:
+            # Load Image
             image = self._load_image(image_bytes)
         except ValueError as exc:
             return AadhaarData(errors=[str(exc)])
 
         try:
+            # Use Gemini to extract text
             raw_text = await self._call_gemini(self.PROMPT, image)
         except Exception as exc:
             return AadhaarData(errors=[f"Gemini API error: {exc}"])
 
         try:
+            # Parse the response
             parsed = self._parse_response(raw_text)
         except ValueError as exc:
             return AadhaarData(raw_text=raw_text, errors=[str(exc)])
 
+        # Sending the parsed data
         data = AadhaarData(
             name=parsed.get("name"),
             dob=parsed.get("dob"),
