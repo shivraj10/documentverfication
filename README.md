@@ -67,20 +67,6 @@ DEBUG=false
 VALIDITY_THRESHOLD=0.75
 ```
 
-### 5. Create `__init__.py` files
-
-```bash
-# Windows
-type nul > extractors\__init__.py
-type nul > verifier\__init__.py
-
-# macOS / Linux
-touch extractors/__init__.py
-touch verifier/__init__.py
-```
-
----
-
 ## Running the API
 
 ```bash
