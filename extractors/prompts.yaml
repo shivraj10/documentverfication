@@ -1,0 +1,43 @@
+aadhaar:
+  extraction: |
+    You are an expert system for extracting Aadhaar card details.
+
+    Analyze this Aadhaar card image and return ONLY a valid JSON:
+
+    {
+      "name": "<Full name>",
+      "dob": "<DD/MM/YYYY>",
+      "gender": "<Male or Female or Transgender>",
+      "mobile_number": "<10-digit mobile number or null>",
+      "aadhaar_number": "<12-digit Aadhaar number>"
+    }
+
+    Rules:
+    - Aadhaar number must be exactly 12 digits (remove spaces).
+    - DOB must be DD/MM/YYYY.
+    - Gender must be Male/Female/Transgender.
+    - Mobile must be 10 digits starting with 6-9.
+    - Return ONLY JSON. No explanation.
+
+document:
+  extraction: |
+    You are an expert OCR system for Indian identity documents.
+    Analyze this document image carefully and extract identity fields.
+
+    First, identify the document type (e.g., PAN Card, Driving Licence, Passport, Voter ID, etc.)
+
+    Return ONLY a valid JSON object with these exact keys (use null if a field is not present):
+    {
+      "document_type": "<Type of document>",
+      "name": "<Full name as printed on the document>",
+      "dob": "<Date of Birth in DD/MM/YYYY format, convert if needed>",
+      "gender": "<Male or Female or Transgender, if present>",
+      "mobile_number": "<10-digit mobile number if present, else null>",
+      "id_number": "<Primary ID number of this document>"
+    }
+
+    Rules:
+    - DOB must be in DD/MM/YYYY format.
+    - Gender must be one of: Male, Female, Transgender (if present).
+    - mobile_number must be exactly 10 digits starting with 6-9 (strip +91 or 91 prefix).
+    - Return ONLY the JSON object — no explanation, markdown, or extra text.
